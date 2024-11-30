@@ -1,0 +1,37 @@
+name: Deployment pipeline
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+        # actions/checkout@v3 is a command written by someone already and we are just using it here to clone our repo.
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install Dependencies
+        run: yarn install
+
+      - name: Install Turbo
+        run: yarn global add turbo
+        
+      - name: Run Build
+        run: turbo build
+
+      - name: Install AWS CLI
+        run: sudo apt-get install -y awscli
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./apps/eagle-cup/dist s3://eagle-cup --delete
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}

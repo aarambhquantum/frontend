@@ -1,0 +1,26 @@
+{
+  "extends": "@repo/typescript-config/vite.json",
+  "include": ["src"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": "./src",
+    "allowJs": true,
+    "paths": {
+      "@components/*": ["components/*"],
+      "@pages/*": ["pages/*"],
+      "@assets/*": ["assets/*"],
+      "@store/*": ["store/*"],
+      "@apis/*": ["apis/*"],
+
+      "@atoms/*": ["../../../packages/shared/atoms/*"],
+      "@molecules/*": ["../../../packages/shared/molecules/*"],
+      "@organisms/*": ["../../../packages/shared/organisms/*"],
+      "@templates/*": ["../../../packages/shared/templates/*"],
+      "@shared/api/*": ["../../../packages/shared/api/*"],
+      "@shared/utils/*": ["../../../packages/shared/utils/*"],
+      "@shared/types/*": ["../../../packages/shared/types/*"],
+      "@shared/constants/*": ["../../../packages/shared/constants/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

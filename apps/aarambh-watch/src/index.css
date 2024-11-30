@@ -1,0 +1,103 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: inherit;
+}
+
+html {
+  font-family: "poppins", "sans-serif-pro", "Roboto", "Helvetica", "Arial", "sans-serif";
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+
+@font-face {
+  font-family: "poppins";
+  src: url(./assets/fonts/Poppins/Poppins-Light.ttf);
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "poppins";
+  src: url(./assets/fonts/Poppins/Poppins-Regular.ttf);
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "poppins";
+  src: url(./assets/fonts/Poppins/Poppins-Medium.ttf);
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "poppins";
+  src: url(./assets/fonts/Poppins/Poppins-SemiBold.ttf);
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "poppins";
+  src: url(./assets/fonts/Poppins/Poppins-Bold.ttf);
+  font-weight: 800;
+}
+
+
+@font-face {
+  font-family: "sans-serif-pro";
+  src: url(./assets/fonts/source-serif-pro/SourceSerifPro-Light.otf);
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "sans-serif-pro";
+  src: url(./assets/fonts/source-serif-pro/SourceSerifPro-Regular.otf);
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "sans-serif-pro";
+  src: url(./assets/fonts/source-serif-pro/SourceSerifPro-Semibold.otf);
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "sans-serif-pro";
+  src: url(./assets/fonts/source-serif-pro/SourceSerifPro-Bold.otf);
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "sans-serif-pro";
+  src: url(./assets/fonts/source-serif-pro/SourceSerifPro-Black.otf);
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: "garamond";
+  src: url(./assets/fonts/EBGaramond/EBGaramond-Regular.ttf);
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "garamond";
+  src: url(./assets/fonts/EBGaramond/EBGaramond-Regular.ttf);
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "garamond";
+  src: url(./assets/fonts/EBGaramond/EBGaramond-SemiBold.ttf);
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "garamond";
+  src: url(./assets/fonts/EBGaramond/EBGaramond-Bold.ttf);
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "garamond";
+  src: url(./assets/fonts/EBGaramond/EBGaramond-ExtraBold.ttf);
+  font-weight: 800;
+}

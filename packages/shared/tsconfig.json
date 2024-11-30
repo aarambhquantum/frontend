@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "strict": true,
+    "target": "es6",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@atoms/*": ["./atoms/*"],
+      "@molecules/*": ["./molecules/*"],
+      "@organisms/*": ["./organisms/*"],
+      "@templates/*": ["./templates/*"],
+      "@shared/api/*": ["./api/*"],
+      "@shared/utils/*": ["./utils/*"],
+      "@shared/types/*": ["./types/*"],
+      "@shared/constants/*": ["./constants/*"],
+      "@shared/styles/*": ["./styles/*"],
+    }
+  },
+  "extends": "@repo/typescript-config/base.json",
+  "include": ["."],
+  "exclude": ["node_modules"],
+}

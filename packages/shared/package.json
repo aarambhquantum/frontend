@@ -1,0 +1,29 @@
+{
+  "name": "@repo/shared",
+  "version": "0.0.0",
+  "exports": {
+    "./*": "./index.ts",
+    "./atoms/*": "./atoms/index.ts",
+    "./api/*": "./api/index.ts"
+  },
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint \"**/*.ts\""
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "eslint": "^8.57.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/material": "^5.16.6",
+    "@types/node": "^22.10.1",
+    "axios": "^1.7.2",
+    "react": "^18.3.1",
+    "react-dropzone": "^14.3.5",
+    "sass": "^1.81.0"
+  }
+}
