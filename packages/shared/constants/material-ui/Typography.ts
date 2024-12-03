@@ -22,4 +22,5 @@ export const COLOR_LIGHT = "typography.light";
 export const COLOR_WHITE = "typography.white";
 export const COLOR_DARK = "typography.dark";
 export const COLOR_DARKER = "typography.darker";
+export const COLOR_RED = "typography.red";
 

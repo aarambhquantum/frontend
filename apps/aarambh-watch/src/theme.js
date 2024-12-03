@@ -5,7 +5,9 @@ const customTheme = () => {
     palette: {
       typography: {
         primary: "#1a1a1a",
-        white: "#FFF"
+        white: "#FFF",
+        blue: "#368AF2",
+        red: "#FF5858",
       },
       background: {
         white: "#FFF"
@@ -16,7 +18,7 @@ const customTheme = () => {
       },
     },
     typography: {
-      fontFamily: '"garamond", "sans-serif-pro", "Roboto", "Helvetica", "Arial", "sans-serif" ',
+      fontFamily: '"poppins", "sans-serif-pro", "Roboto", "Helvetica", "Arial", "sans-serif" ',
       fontWeightLight: 300,
       fontWeightRegular: 400,
       fontWeightMedium: 500,

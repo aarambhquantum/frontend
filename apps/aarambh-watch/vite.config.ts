@@ -1,12 +1,14 @@
-import react from '@vitejs/plugin-react'
-import path from 'path'
-import { defineConfig } from 'vite'
-import logResolvedPathsPlugin from './src/plugins/resolvedPathPlugin';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import svgr from 'vite-plugin-svgr';
+import logResolvedPathsPlugin from './src/plugins/resolvedPathPlugin';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    svgr(),
     react(),
     logResolvedPathsPlugin(),
     VitePWA({

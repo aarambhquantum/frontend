@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
+    "@ffmpeg/ffmpeg": "^0.12.10",
     "@mui/material": "^5.16.6",
     "@reduxjs/toolkit": "^2.2.7",
     "@repo/shared": "*",
@@ -27,6 +28,7 @@
     "yarn": "^1.22.22"
   },
   "devDependencies": {
+    "vite-plugin-svgr": "^4.3.0",
     "@types/node": "^22.0.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
