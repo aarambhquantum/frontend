@@ -1,6 +1,6 @@
 // src/app/store.js
 import { configureStore } from '@reduxjs/toolkit';
-import counterSlice from '@store/slices/delete';
+import counterSlice from '@store/slices/video-upload';
 import createSagaMiddleware from 'redux-saga';
 import rootSaga from './saga'
 

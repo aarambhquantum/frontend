@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createApiClient, get, post, put, patch, deleteRequest } from '@repo/shared/api'; 
-import { config } from './config';
+import { createApiClient, deleteRequest, get, patch, post, put } from '@repo/shared/api';
 import { AxiosRequestConfig } from 'axios';
+import { config } from './config';
 
 // Create an instance of the API client
 const apiClient = createApiClient(config.apiBaseUrl);
@@ -26,19 +26,19 @@ apiClient.interceptors.request.use(
 
 export const api = {
   getData(endpoint: string, config?: AxiosRequestConfig) {
-    get(apiClient, endpoint, config);
+    return get(apiClient, endpoint, config);
   },
   postData(endpoint: string, data: any, config?: AxiosRequestConfig) {
-    post(apiClient, endpoint, data, config);
+    return post(apiClient, endpoint, data, config);
   },
   putData(endpoint: string, data: any, config?: AxiosRequestConfig) {
-    put(apiClient, endpoint, data, config);
+    return put(apiClient, endpoint, data, config);
   },
   patchData(endpoint: string, data: any, config?: AxiosRequestConfig) {
-    patch(apiClient, endpoint, data, config);
+    return patch(apiClient, endpoint, data, config);
   },
   deleteData(endpoint: string, config?: AxiosRequestConfig) {
-    deleteRequest(apiClient, endpoint, config);
+    return deleteRequest(apiClient, endpoint, config);
   },
 }
 

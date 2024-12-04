@@ -1,7 +1,7 @@
 export * from '@shared/api/index';
 export * from '@shared/constants/index';
 export * from '@shared/types/index';
-// export * from '@shared/utils/index';
+export * from '@shared/utils/index';
 
 
 export * from '@atoms/index';

@@ -12,6 +12,8 @@
       "@assets/*": ["assets/*"],
       "@store/*": ["store/*"],
       "@apis/*": ["apis/*"],
+      "@constants/*": ["constants/*"],
+      "@types/*": ["types/*"],
 
       "@atoms/*": ["../../../packages/shared/atoms/*"],
       "@molecules/*": ["../../../packages/shared/molecules/*"],

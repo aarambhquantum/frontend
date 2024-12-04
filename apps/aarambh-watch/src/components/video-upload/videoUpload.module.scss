@@ -1,4 +1,13 @@
-.container {
-  width: 700px;
-  height: 300px;
+.upload {
+  display: flex;
+  flex-direction: column;
+
+  &__container {
+    width: 700px;
+    height: 300px;
+  }
+  &__btn {
+    align-self: flex-end;
+    margin-top: 24px !important;
+  }
 }
