@@ -14,3 +14,12 @@ export const convertFileToUint8Array = (file: File): Promise<Uint8Array> => {
     reader.onerror = (error) => reject(error);
   });
 };
+
+export const convertFileDataIntoUint8Array = (file):Uint8Array => {
+  return file instanceof Uint8Array ? file : new Uint8Array(file);
+}
+
+export const getSizeForUint8Array = (file: Uint8Array) => file?.length;
+
+export const getSizeInMBForUint8Array = (file: Uint8Array) =>
+  getSizeForUint8Array(file) / (1024 * 1024);

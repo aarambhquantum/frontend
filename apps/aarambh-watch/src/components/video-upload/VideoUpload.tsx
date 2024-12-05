@@ -1,4 +1,8 @@
-import { initiateVideoUpload } from "@apis/videoUpload";
+import {
+  completeVideoUpload,
+  getPresignedUrl,
+  initiateVideoUpload,
+} from "@apis/videoUpload";
 import UploadIcon from "@assets/img/upload.svg?react";
 import DragAndDrop from "@atoms/DragAndDrop";
 import Typography from "@atoms/typography/Typography";
@@ -6,32 +10,99 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 import { Button } from "@mui/material";
 import { isNonEmptyArray } from "@shared/utils/arrayUtils";
-import { convertFileToUint8Array } from "@shared/utils/fileUtils";
+import {
+  convertFileDataIntoUint8Array,
+  convertFileToUint8Array,
+  getSizeInMBForUint8Array
+} from "@shared/utils/fileUtils";
 import { InitiateVideoUploadResponse } from "@types/videoUpload";
-import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { useRef, useState } from "react";
 import styles from "./videoUpload.module.scss";
 
 const VideoUpload = () => {
+  const dir = "/testing";
+
   const ffmpegRef = useRef(new FFmpeg());
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const messageRef = useRef<HTMLParagraphElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const messageRef = useRef<HTMLParagraphElement | null>(null);
   const [loaded, setLoaded] = useState(false);
-  console.log("🚀 ~ VideoUpload ~ loaded:", loaded)
+  console.log("🚀 ~ VideoUpload ~ loaded:", loaded);
   const [video, setVideo] = useState<File[]>([]);
   const [uploadId, setUploadId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (loaded) {
-      transcode();
-    }
-  }, [loaded]);
-
   const handleUpload = async () => {
-    await load();
+    if (!loaded) await load();
+
+    const filesize: string = video?.[0]?.size;
+
     const response: InitiateVideoUploadResponse = await initiateVideoUpload({
       filename: "sample_video_from_client",
     });
     setUploadId(response?.upload_id);
+
+    const videoParts: unknown[] = await transcode();
+
+    if (videoParts?.length === 0) {
+      console.error("NO VIDEO FILE FOUND!");
+      return;
+    }
+
+    const presignedUrls: string[] = await getPresignedUrl({
+      filename: "sample_video_from_client",
+      upload_id: response?.upload_id,
+      part_count: videoParts?.length,
+    });
+
+    const etags = [];
+    const promises: Promise<unknown>[] = videoParts?.map(
+      async (videoObj, index) => {
+        const ffmpeg = ffmpegRef.current;
+        console.log("🚀 ~ READING:", videoObj);
+        const file = await ffmpeg.readFile(`${dir}/${videoObj?.name}`);
+        const sizeInMB = getSizeInMBForUint8Array(
+          convertFileDataIntoUint8Array(file)
+        );
+        console.log("🚀 ~ file, sizeInMB:", videoObj?.name, sizeInMB);
+        if (sizeInMB < 5 && index !== videoParts?.length - 1) {
+          console.log(
+            "🚀 ~ FILE CHUNK SIZE TOO SMALL (should be atleast 5MB):",
+            `${sizeInMB.toFixed(2)} MB`
+          );
+        }
+        console.log("🚀 ~ UPLOAD STARTED:", videoObj);
+        const data = await uploadVideo(file, presignedUrls[index]);
+        console.log("🚀 ~ UPLOAD ENDED:", videoObj);
+
+        etags.push({
+          ETag: data?.headers?.etag,
+          PartNumber: index + 1,
+        });
+      }
+    );
+
+    await Promise.all(promises);
+    const finalResponse = await completeVideoUpload({
+      filename: "sample_video_from_client",
+      upload_id: response?.upload_id as string,
+      etags,
+    });
+    console.log("🚀 ~ handleUpload ~ response?.data:", finalResponse?.data);
+  };
+
+  const uploadVideo = async (file: File, presignedUrl: string) => {
+    try {
+      const response = await axios.put(presignedUrl, file, {
+        headers: {
+          "Content-Type": "video/mp4", // Ensure you set the correct content type
+        },
+      });
+
+      console.log("Upload successful!", response);
+      return response;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
   };
 
   const load = async () => {
@@ -39,7 +110,7 @@ const VideoUpload = () => {
     const ffmpeg = ffmpegRef.current;
     ffmpeg.on("log", ({ message }) => {
       if (messageRef.current) messageRef.current.innerHTML = message;
-      console.log("🚀 ~ ffmpeg.on ~ message:", message)
+      // console.log("🚀 ~ ffmpeg.on ~ message:", message);
     });
     // toBlobURL is used to bypass CORS issue, urls with the same
     // domain can be used directly.
@@ -62,7 +133,6 @@ const VideoUpload = () => {
     const videoToTranscode: Uint8Array = await convertFileToUint8Array(
       video?.[0]
     );
-    const dir = "/testing";
     await ffmpeg.writeFile("input.webm", videoToTranscode);
     await ffmpeg.createDir(dir);
     await ffmpeg.exec([
@@ -86,7 +156,11 @@ const VideoUpload = () => {
     ]);
 
     let videoFiles = await ffmpeg.listDir(dir);
+    console.log("🚀 ~ ALL FILE:", videoFiles);
     videoFiles = videoFiles?.filter((file) => file?.name?.includes("output"));
+    console.log("🚀 ~ FILTERED FILE:", videoFiles);
+
+    return videoFiles;
   };
 
   return (
