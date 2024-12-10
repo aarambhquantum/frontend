@@ -105,26 +105,52 @@ const VideoUpload = () => {
     }
   };
 
+  // const load = async () => {
+  //   const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm";
+  //   const ffmpeg = ffmpegRef.current;
+  //   ffmpeg.on("log", ({ message }) => {
+  //     if (messageRef.current) messageRef.current.innerHTML = message;
+  //     console.log("🚀 ~ ffmpeg.on ~ message:", message);
+  //   });
+  //   // toBlobURL is used to bypass CORS issue, urls with the same
+  //   // domain can be used directly.
+  //   await ffmpeg.load({
+  //     coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
+  //     wasmURL: await toBlobURL(
+  //       `${baseURL}/ffmpeg-core.wasm`,
+  //       "application/wasm"
+  //     ),
+  //     workerURL: await toBlobURL(
+  //       `${baseURL}/ffmpeg-core.worker.js`,
+  //       "text/javascript"
+  //     ),
+  //   });
+  //   setLoaded(true);
+  // };
   const load = async () => {
     const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm";
     const ffmpeg = ffmpegRef.current;
+  
     ffmpeg.on("log", ({ message }) => {
       if (messageRef.current) messageRef.current.innerHTML = message;
-      // console.log("🚀 ~ ffmpeg.on ~ message:", message);
+      console.log("🚀 ~ ffmpeg.on ~ message:", message);
     });
-    // toBlobURL is used to bypass CORS issue, urls with the same
-    // domain can be used directly.
+  
+    // Bypass CORS issues with toBlobURL
+    const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript");
+    const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm");
+    const workerURL = await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, "text/javascript");
+  
+    // Load FFmpeg with adjusted settings
     await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(
-        `${baseURL}/ffmpeg-core.wasm`,
-        "application/wasm"
-      ),
-      workerURL: await toBlobURL(
-        `${baseURL}/ffmpeg-core.worker.js`,
-        "text/javascript"
-      ),
+      coreURL,
+      wasmURL,
+      workerURL,
+      // Predefine total memory without passing callbacks
+      totalMemory: 512 * 1024 * 1024, // 512MB for larger video processing
     });
+  
+    console.log("FFmpeg loaded successfully");
     setLoaded(true);
   };
 
@@ -134,7 +160,8 @@ const VideoUpload = () => {
       video?.[0]
     );
     await ffmpeg.writeFile("input.webm", videoToTranscode);
-    await ffmpeg.createDir(dir);
+    var directoryPromise = await ffmpeg.createDir(dir);
+    console.log(directoryPromise);
     await ffmpeg.exec([
       "-i",
       "input.webm",
