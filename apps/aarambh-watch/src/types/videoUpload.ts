@@ -7,9 +7,8 @@ export interface InitiateVideoUploadResponse {
 }
 
 export interface GetPresignedUrlRequest {
-  filename: string;
-  upload_id: string;
-  part_count: number;
+  files: string[];
+  video_name: string;
 }
 
 export interface CompleteVideoUploadRequest {

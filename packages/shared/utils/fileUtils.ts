@@ -23,3 +23,7 @@ export const getSizeForUint8Array = (file: Uint8Array) => file?.length;
 
 export const getSizeInMBForUint8Array = (file: Uint8Array) =>
   getSizeForUint8Array(file) / (1024 * 1024);
+
+export const getFileSizeInMB = (file: File) => {
+  return file?.size / (1024 * 1024);
+}
