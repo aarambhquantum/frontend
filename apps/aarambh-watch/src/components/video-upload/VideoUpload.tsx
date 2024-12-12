@@ -6,10 +6,9 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 import { Button } from "@mui/material";
 import { isNonEmptyArray } from "@shared/utils/arrayUtils";
-import { convertVideoIntoHLSPlaylist } from "@shared/utils/ffmpeg";
+import { convertChunkToTs, updateM3U8File } from "@shared/utils/ffmpeg";
 import {
-  convertFileDataIntoUint8Array,
-  getSizeInMBForUint8Array
+  readFileChunk
 } from "@shared/utils/fileUtils";
 import { useRef, useState } from "react";
 import styles from "./videoUpload.module.scss";
@@ -20,46 +19,39 @@ const VideoUpload = () => {
   const ffmpegRef = useRef(new FFmpeg());
   const messageRef = useRef<HTMLParagraphElement | null>(null);
   const [loaded, setLoaded] = useState(false);
-  console.log("🚀 ~ VideoUpload ~ loaded:", loaded);
-  const [video, setVideo] = useState<File[]>([]);
-  const filename = "sample_video_4_10mb";
+  const [videos, setVideos] = useState<File[]>([]);
+  const filename = "sample_video_stream_10mb";
 
   const handleUpload = async () => {
     if (!loaded) await load();
 
-    const videoParts: {name: string, dir: boolean}[] = await convertVideoIntoHLSPlaylist(
-      ffmpegRef,
-      video?.[0],
-      20
-    );
+    const ffmpeg = ffmpegRef?.current;
+    const video = videos?.[0];
+    console.log("🚀 ~ handleUpload ~ video:", video)
 
-    if (videoParts?.length === 0) {
-      console.error("NO VIDEO FILE FOUND!");
-      return;
+    if (!video) {
+      throw new Error("Could not find the video.");
     }
 
-    const presignedUrls: string[] = await getPresignedUrl({
-      files: videoParts?.map((item) => item?.name),
-      video_name: filename
-    });
+    const totalChunks = Math.ceil(video?.size / (10 * 1024 * 1024));
+    const chunksFileName = Array.from({ length: totalChunks }, (_, i) => `video_segment_${i+1}.ts`);
+    chunksFileName.push('playlist.m3u8');
 
-    for (let i=0;i<videoParts?.length;i++) {
-      const ffmpeg = ffmpegRef.current;
-      const videoObj = videoParts[i];
-      const file = await ffmpeg.readFile(`${dir}/${videoObj?.name}`);
-      const sizeInMB = getSizeInMBForUint8Array(
-        convertFileDataIntoUint8Array(file)
-      );
-      console.log("🚀 ~ UPLOAD STARTED:", videoObj?.name, sizeInMB);
-      await uploadFileToPresignedURL(
-        file as unknown as File,
-        presignedUrls[i],
-        file?.name?.includes("m3u8") ? "application/x-mpegURL" : "video/MP2T"
-      );
-      console.log("🚀 ~ UPLOAD ENDED:", videoObj?.name);
-      ffmpegRef.current.deleteFile(`/videos/${videoObj.name}`);
+    const presignedUrls: string[] = await getPresignedUrl({ files: chunksFileName, video_name: filename });
+
+    for (let i = 0;i< totalChunks;i++) {
+      const chunk = await readFileChunk(video, 1024 * 1024, 1024 * 1024 * i);
+      const tsFile = await convertChunkToTs(ffmpegRef, chunk, i+1);
+      
+      await updateM3U8File(ffmpegRef, chunksFileName[i], 'playlist.m3u8');
+      await uploadFileToPresignedURL(tsFile, presignedUrls[i], 'video/MP2T');
     }
-  };
+
+    const playlistFile = await ffmpeg.readFile('playlist.m3u8');
+    await uploadFileToPresignedURL(playlistFile, 'playlist.m3u8', 'application/x-mpegURL');
+
+    console.log("UPLOAD SUCCESS");
+  }
 
   const load = async () => {
     const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm";
@@ -101,8 +93,8 @@ const VideoUpload = () => {
     <div className={styles.upload}>
       <div className={styles.upload__container}>
         <DragAndDrop
-          files={video}
-          setFiles={setVideo}
+          files={videos}
+          setFiles={setVideos}
           acceptedFileTypes={{
             "video/*": [],
           }}
@@ -115,7 +107,7 @@ const VideoUpload = () => {
       <Button
         variant="contained"
         classes={{ root: styles.upload__btn }}
-        disabled={Boolean(!isNonEmptyArray(video))}
+        disabled={Boolean(!isNonEmptyArray(videos))}
         onClick={handleUpload}
       >
         Upload
