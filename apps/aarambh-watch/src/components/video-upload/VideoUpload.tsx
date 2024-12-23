@@ -6,189 +6,216 @@ import {
 import UploadIcon from "@assets/img/upload.svg?react";
 import DragAndDrop from "@atoms/DragAndDrop";
 import Typography from "@atoms/typography/Typography";
-import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { toBlobURL } from "@ffmpeg/util";
 import { Button } from "@mui/material";
 import { isNonEmptyArray } from "@shared/utils/arrayUtils";
-import {
-  convertFileDataIntoUint8Array,
-  convertFileToUint8Array,
-  getSizeInMBForUint8Array
-} from "@shared/utils/fileUtils";
-import { InitiateVideoUploadResponse } from "@types/videoUpload";
-import axios from "axios";
-import { useRef, useState } from "react";
+import { GetPresignedUrlResponse, InitiateVideoUploadResponse } from "@types/videoUpload";
+import { useRef, useState, useEffect } from "react";
 import styles from "./videoUpload.module.scss";
+import { VideoData, ApplicationResponse, InitiateVideoUploadRequest, ETag } from "@types/videoUpload"
 
 const VideoUpload = () => {
-  const dir = "/testing";
-
-  const ffmpegRef = useRef(new FFmpeg());
+  useEffect(() => {
+    localStorage.setItem("etagList", JSON.stringify([]));
+  }, []);
+  // const ffmpegRef = useRef(new FFmpeg());
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const messageRef = useRef<HTMLParagraphElement | null>(null);
   const [loaded, setLoaded] = useState(false);
   console.log("🚀 ~ VideoUpload ~ loaded:", loaded);
   const [video, setVideo] = useState<File[]>([]);
   const [uploadId, setUploadId] = useState<string | null>(null);
+  const [eTagListLatest, setETagListLatest] = useState<ETag[] | null>([]);
 
-  const handleUpload = async () => {
-    if (!loaded) await load();
-
-    const filesize: string = video?.[0]?.size;
-
-    const response: InitiateVideoUploadResponse = await initiateVideoUpload({
-      filename: "sample_video_from_client",
-    });
-    setUploadId(response?.upload_id);
-
-    const videoParts: unknown[] = await transcode();
-
-    if (videoParts?.length === 0) {
-      console.error("NO VIDEO FILE FOUND!");
-      return;
-    }
-
-    const presignedUrls: string[] = await getPresignedUrl({
-      filename: "sample_video_from_client",
-      upload_id: response?.upload_id,
-      part_count: videoParts?.length,
-    });
-
-    const etags = [];
-    const promises: Promise<unknown>[] = videoParts?.map(
-      async (videoObj, index) => {
-        const ffmpeg = ffmpegRef.current;
-        console.log("🚀 ~ READING:", videoObj);
-        const file = await ffmpeg.readFile(`${dir}/${videoObj?.name}`);
-        const sizeInMB = getSizeInMBForUint8Array(
-          convertFileDataIntoUint8Array(file)
-        );
-        console.log("🚀 ~ file, sizeInMB:", videoObj?.name, sizeInMB);
-        if (sizeInMB < 5 && index !== videoParts?.length - 1) {
-          console.log(
-            "🚀 ~ FILE CHUNK SIZE TOO SMALL (should be atleast 5MB):",
-            `${sizeInMB.toFixed(2)} MB`
-          );
-        }
-        console.log("🚀 ~ UPLOAD STARTED:", videoObj);
-        const data = await uploadVideo(file, presignedUrls[index]);
-        console.log("🚀 ~ UPLOAD ENDED:", videoObj);
-
-        etags.push({
-          ETag: data?.headers?.etag,
-          PartNumber: index + 1,
-        });
-      }
-    );
-
-    await Promise.all(promises);
-    const finalResponse = await completeVideoUpload({
-      filename: "sample_video_from_client",
-      upload_id: response?.upload_id as string,
-      etags,
-    });
-    console.log("🚀 ~ handleUpload ~ response?.data:", finalResponse?.data);
+  const mockVideoData: VideoData = {
+    id: "mock-video-id",
+    title: "Mock Video Title",
+    description: "Mock Video Description",
+    video_url: "https://example.com/mock-video.mp4",
+    thumbnail_url: "https://example.com/mock-video-thumbnail.jpg",
+    upload_date: "",
+    status: "ACTIVE",
+    user_id_of_owner: "mock-user-id",
+    category_id: "mock-category-id",
+    tags: "mock-tag1, mock-tag2",
+    view_count: "1",
+    like_count: "1",
+    dislike_count: "1",
+    comment_count: "",
+    duration: "01:00:00",
+    upload_type: "FILE",
+    upload_size: "100MB",
   };
 
-  const uploadVideo = async (file: File, presignedUrl: string) => {
-    try {
-      const response = await axios.put(presignedUrl, file, {
-        headers: {
-          "Content-Type": "video/mp4", // Ensure you set the correct content type
-        },
+  const initiateVideoUploadRequest: InitiateVideoUploadRequest = {
+    file_name: "sample_video_from_client.mp4",
+    content_type: "application/octet-stream",
+    video_data: mockVideoData
+  }
+
+const handleInitiateVideoUpload = async (request: InitiateVideoUploadRequest) => {
+  try {
+    const response: InitiateVideoUploadResponse = await initiateVideoUpload(request);
+    setUploadId(response?.upload_id);
+    console.log("Initiate upload response:", response);
+    return response;
+  } catch (error) {
+    console.error("Error during initiate upload:", error);
+  }
+};
+
+/**
+ * Gets a presigned URL for a part of a video that we can upload to S3.
+ *
+ * @param {string} fileName The name of the file that we're uploading.
+ * @param {string} uploadId The ID of the upload that we're a part of.
+ * @param {number} partNumber The number of the part that we're uploading.
+ * @param {number} contentLength The length of the part that we're uploading.
+ * @returns {Promise<GetPresignedUrlResponse>} A promise that resolves to the
+ * pre-signed URL that we can use to upload the part to S3.
+ */
+const getPresignedUrlForPart = async (
+  fileName: string,
+  uploadId: string,
+  partNumber: number,
+  contentLength: number
+): Promise<GetPresignedUrlResponse> => {
+  try {
+    // Make a request to the server to get a presigned URL for the part
+    // that we're uploading.
+    const preSignedUrl: GetPresignedUrlResponse = await getPresignedUrl({
+      file_name: fileName,
+      upload_id: uploadId,
+      part_count: partNumber,
+      content_length: contentLength,
+    });
+
+    // Log the presigned URL so that we can see it in the console.
+    console.log(`Presigned URL for part ${partNumber}:`, preSignedUrl);
+
+    // Return the presigned URL so that we can use it to upload the part
+    // to S3.
+    return preSignedUrl;
+  } catch (error) {
+    // If there's an error, log it so that we can see what went wrong.
+    console.error("Error during get pre signed URL:", error);
+    return Promise.reject(error);
+  }
+};
+
+const uploadVideoPart = async (
+  chunk: Blob,
+  preSignedUrl: GetPresignedUrlResponse,
+  partNumber : number
+) => {
+  try {
+    const response = await fetch(preSignedUrl?.url, {
+      method: "PUT",
+      body: chunk,
+    });
+    if (!response.ok) {
+      throw new Error(`Error uploading to S3: ${response.status}`);
+    }
+    console.log(response);
+    const etagString = response.headers.get("ETag")?.replace(/"/g, '') || ''; 
+    const etag : ETag = {
+      e_tag: etagString,
+      part_number: partNumber,
+    };
+    const etags = JSON.parse(localStorage.getItem("etagList") || "[]");
+    etags.push(etag);
+    localStorage.setItem("etagList", JSON.stringify(etags));
+    setETagListLatest((prev) => {
+      const updatedEtags = [...(prev || []), etag];
+      return updatedEtags;
+    });
+  } catch (error) {
+    console.error("Error during upload video part:", error);
+  }
+};
+
+const handleUpload = async () => {
+  try {
+    const response = await handleInitiateVideoUpload(initiateVideoUploadRequest);
+
+    if (!response?.upload_id) {
+      throw new Error("Upload id is empty");
+    }
+
+    setUploadId(response.upload_id); // Set the uploadId state
+    localStorage.setItem("etagList", JSON.stringify([]));
+    const etagList = localStorage.getItem("etagList");
+    const etags = etagList ? JSON.parse(etagList) : [];
+
+    if (video?.[0]) {
+      console.log("Video file:", video[0]);
+
+      const chunkSize = 5 * 1024 * 1024; // 5MB
+      const fileSize = video[0].size;
+      const totalChunks = Math.ceil(fileSize / chunkSize);
+
+      const videoParts = [];
+      const uploadPromises = [];
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, fileSize);
+        const chunk = video[0].slice(start, end);
+        const reader = new FileReader();
+
+        const uploadPromise = new Promise<void>((resolve, reject) => {
+          reader.onload = async (event) => {
+            const videoObj = {
+              name: `video_part_${i + 1}`,
+              data: event.target?.result,
+            };
+
+            videoParts.push(videoObj);
+
+            try {
+              const preSignedUrl = await getPresignedUrlForPart(
+                "sample_video_from_client.mp4",
+                response.upload_id,
+                i + 1,
+                chunk.size
+              );
+
+              await uploadVideoPart(chunk, preSignedUrl, i+1);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          };
+
+          reader.onerror = (error) => reject(error);
+        });
+
+        reader.readAsArrayBuffer(chunk);
+        uploadPromises.push(uploadPromise);
+      }
+
+      await Promise.all(uploadPromises);
+      // const eTagArray: ETag[] = [];
+      const updatedETags = JSON.parse(localStorage.getItem("etagList") || "[]");
+      // updatedETags.forEach((tag: string, index: number) => {
+      //   const etag = {
+      //     e_tag: tag,
+      //     part_number: index + 1,
+      //   };
+      //   eTagArray.push(etag);
+      // });
+
+      const finalResponse = await completeVideoUpload({
+        file_name: "sample_video_from_client.mp4",
+        upload_id: response.upload_id, // Use the response upload_id
+        e_tags: updatedETags,
       });
 
-      console.log("Upload successful!", response);
-      return response;
-    } catch (error) {
-      console.error("Error uploading file:", error);
+      console.log("Complete upload response:", finalResponse);
     }
-  };
-
-  // const load = async () => {
-  //   const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm";
-  //   const ffmpeg = ffmpegRef.current;
-  //   ffmpeg.on("log", ({ message }) => {
-  //     if (messageRef.current) messageRef.current.innerHTML = message;
-  //     console.log("🚀 ~ ffmpeg.on ~ message:", message);
-  //   });
-  //   // toBlobURL is used to bypass CORS issue, urls with the same
-  //   // domain can be used directly.
-  //   await ffmpeg.load({
-  //     coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-  //     wasmURL: await toBlobURL(
-  //       `${baseURL}/ffmpeg-core.wasm`,
-  //       "application/wasm"
-  //     ),
-  //     workerURL: await toBlobURL(
-  //       `${baseURL}/ffmpeg-core.worker.js`,
-  //       "text/javascript"
-  //     ),
-  //   });
-  //   setLoaded(true);
-  // };
-  const load = async () => {
-    const baseURL = "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm";
-    const ffmpeg = ffmpegRef.current;
-  
-    ffmpeg.on("log", ({ message }) => {
-      if (messageRef.current) messageRef.current.innerHTML = message;
-      console.log("🚀 ~ ffmpeg.on ~ message:", message);
-    });
-  
-    // Bypass CORS issues with toBlobURL
-    const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript");
-    const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm");
-    const workerURL = await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, "text/javascript");
-  
-    // Load FFmpeg with adjusted settings
-    await ffmpeg.load({
-      coreURL,
-      wasmURL,
-      workerURL,
-      // Predefine total memory without passing callbacks
-      totalMemory: 512 * 1024 * 1024, // 512MB for larger video processing
-    });
-  
-    console.log("FFmpeg loaded successfully");
-    setLoaded(true);
-  };
-
-  const transcode = async () => {
-    const ffmpeg = ffmpegRef.current;
-    const videoToTranscode: Uint8Array = await convertFileToUint8Array(
-      video?.[0]
-    );
-    await ffmpeg.writeFile("input.webm", videoToTranscode);
-    var directoryPromise = await ffmpeg.createDir(dir);
-    console.log(directoryPromise);
-    await ffmpeg.exec([
-      "-i",
-      "input.webm",
-      "-f",
-      "segment",
-      "-segment_time",
-      "10",
-      "-g",
-      "9",
-      "-sc_threshold",
-      "0",
-      "-force_key_frames",
-      "expr:gte(t,n_forced*9)",
-      "-reset_timestamps",
-      "1",
-      "-map",
-      "0",
-      `${dir}/output_%d.mp4`,
-    ]);
-
-    let videoFiles = await ffmpeg.listDir(dir);
-    console.log("🚀 ~ ALL FILE:", videoFiles);
-    videoFiles = videoFiles?.filter((file) => file?.name?.includes("output"));
-    console.log("🚀 ~ FILTERED FILE:", videoFiles);
-
-    return videoFiles;
-  };
+  } catch (error) {
+    console.error("Error during upload:", error);
+  }
+};
 
   return (
     <div className={styles.upload}>
