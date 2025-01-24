@@ -9,7 +9,7 @@
   "devDependencies": {
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
-    "turbo": "^2.0.10"
+    "turbo": "^2.3.3"
   },
   "name": "with-vite",
   "packageManager": "yarn@1.22.22",

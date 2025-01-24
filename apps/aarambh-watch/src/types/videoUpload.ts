@@ -6,6 +6,7 @@ export interface InitiateVideoUploadRequest {
 
 export interface InitiateVideoUploadResponse {
   upload_id: string;
+  unique_view_id: string;
   file_name: string;
   expiry_date: string;
 }
@@ -15,6 +16,7 @@ export interface GetPresignedUrlRequest {
   upload_id: string;
   part_count: number;
   content_length: number;
+  unique_view_id: string | null;
 }
 
 export interface GetPresignedUrlResponse {
@@ -25,6 +27,7 @@ export interface CompleteVideoUploadRequest {
   file_name: string;
   upload_id: string | null;
   e_tags: ETag[] | null;
+  unique_view_id: string | null;
 }
 export interface ETag{
   e_tag: string,

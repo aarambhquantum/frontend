@@ -23,7 +23,9 @@ const VideoUpload = () => {
   const [loaded, setLoaded] = useState(false);
   console.log("🚀 ~ VideoUpload ~ loaded:", loaded);
   const [video, setVideo] = useState<File[]>([]);
+  
   const [uploadId, setUploadId] = useState<string | null>(null);
+  const [uniqueViewId, setUniqueViewId] = useState<string | null>(null);
   const [eTagListLatest, setETagListLatest] = useState<ETag[] | null>([]);
 
   const mockVideoData: VideoData = {
@@ -56,6 +58,7 @@ const handleInitiateVideoUpload = async (request: InitiateVideoUploadRequest) =>
   try {
     const response: InitiateVideoUploadResponse = await initiateVideoUpload(request);
     setUploadId(response?.upload_id);
+    setUniqueViewId(response?.unique_view_id);
     console.log("Initiate upload response:", response);
     return response;
   } catch (error) {
@@ -77,7 +80,8 @@ const getPresignedUrlForPart = async (
   fileName: string,
   uploadId: string,
   partNumber: number,
-  contentLength: number
+  contentLength: number,
+  uniqueViewId: string
 ): Promise<GetPresignedUrlResponse> => {
   try {
     // Make a request to the server to get a presigned URL for the part
@@ -87,6 +91,7 @@ const getPresignedUrlForPart = async (
       upload_id: uploadId,
       part_count: partNumber,
       content_length: contentLength,
+      unique_view_id: uniqueViewId
     });
 
     // Log the presigned URL so that we can see it in the console.
@@ -142,6 +147,7 @@ const handleUpload = async () => {
     }
 
     setUploadId(response.upload_id); // Set the uploadId state
+    setUniqueViewId(response.unique_view_id); // Set the uniqueViewId state
     localStorage.setItem("etagList", JSON.stringify([]));
     const etagList = localStorage.getItem("etagList");
     const etags = etagList ? JSON.parse(etagList) : [];
@@ -176,7 +182,8 @@ const handleUpload = async () => {
                 "sample_video_from_client.mp4",
                 response.upload_id,
                 i + 1,
-                chunk.size
+                chunk.size,
+                response.unique_view_id
               );
 
               await uploadVideoPart(chunk, preSignedUrl, i+1);
@@ -208,6 +215,7 @@ const handleUpload = async () => {
         file_name: "sample_video_from_client.mp4",
         upload_id: response.upload_id, // Use the response upload_id
         e_tags: updatedETags,
+        unique_view_id: response.unique_view_id,
       });
 
       console.log("Complete upload response:", finalResponse);
